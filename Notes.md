@@ -115,6 +115,34 @@ As a quick example, you can schedule applications on kubernetes with-out caring 
 ## 2. kubernetes principles of operation
 
 **kubernetes from 40K feet**
+- kubernetes is both cluster and an orchestrator .
+
+**kubernetes : cluster **
+- kubernetes is one or more nodes providing CPU, Memory and other resources for application use.
+
+kubernetes supports two node types:
+1. control plane nodes (system services)
+2. Worker nodes (user apps)
+
+- Both types can be physical servers, virtual machines, or cloud instances, and both can run on ARM and AMD64/x86-84. Control plane nodes must be linux, but worker nodes can be linux or windows.
+
+- control plane nodes implement the kubernetes intelligence, and every cluster needs at least one. However, you should have three or five for high availability (HA)
+- Every control plane node runs every control plane service. These include  the API Server, the scheduler, and the controller that implement cloud-native features such as self-healing, autoscaling and rollouts.
+- Worker nodes are where you run your business applications
+
+**kubernetes : Orchestrator**
+
+- orchestrator is the jargon for a system that deploys and manages applications.
+- Kubernetes is the industry-standard orchestrator and can intelligently deploy applications across nodes and failure zones for optimal performance and availability. It can also fix things when they break, scale things when demand changes, and manage rollouts and rollbacks.
+
+**control plane and worker nodes**
+- a kubernetes cluster is one or more control plane nodes and worker nodes.
+- Almost all cloud-native apps are linux apps and require linux worker nodes. However, you'll need one or more windows worker nodes if you have cloud-native windows apps. Fortunately, a single kubernetes cluster can have a mix of linux and windows worker nodes, and kubernetes is intelligent enough to schedule apps to the correct nodes.
+
+- The control plane is a collection of system  services that implement brains of kubernetes. It exposes the API, scheduled apps, implements self-healing, manages scaling operations, and more.
+- The simplest clusters run a single control plane node and are best suited for labs and testing. For production clusters, you should run three or five control plane nodes and spread them across availability zones for high availability
+
+Most clusters run every control plane service 
 
 **Control plane nodes and worker nodes**
 

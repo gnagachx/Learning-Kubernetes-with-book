@@ -142,9 +142,11 @@ kubernetes supports two node types:
 - The control plane is a collection of system  services that implement brains of kubernetes. It exposes the API, scheduled apps, implements self-healing, manages scaling operations, and more.
 - The simplest clusters run a single control plane node and are best suited for labs and testing. For production clusters, you should run three or five control plane nodes and spread them across availability zones for high availability
 
-Most clusters run every control plane service 
+Most clusters run every control plane service on every control plane node for HA.
 
-**Control plane nodes and worker nodes**
+**API Server**
+- API server is the front end of kubernetes, and all commands and requests go through it. Even internal control plane services communicate with each other via the API server.
+- 
 
 **packaging apps for kubernetes**
 

@@ -1,4 +1,4 @@
-# 1. Kubernetes Primer
+![image](https://github.com/user-attachments/assets/88a0a491-3d0e-4450-93aa-13350f1a602f)![image](https://github.com/user-attachments/assets/ab2d3d30-7866-4d5f-930c-42cee5962bcf)# 1. Kubernetes Primer
 # 2. kubernetes principles of operation
 # 3. Getting kubernetes
 # 4. Working with pods
@@ -146,13 +146,152 @@ Most clusters run every control plane service on every control plane node for HA
 
 **API Server**
 - API server is the front end of kubernetes, and all commands and requests go through it. Even internal control plane services communicate with each other via the API server.
-- 
+- It exposes RESTful API over HTTPS, and all requests are subjected to authentication and authorization.
+
+For ex: Deploying or updating an app follows this process :
+1. Describe the application in YAML configuration
+2. post the configuration file to the API server
+3. The request will be authenticated and authorized
+4. The application definition will be persisted in the cluster store
+5. The application's containers will be scheduled to nodes in the cluster
+
+The cluster Store :
+- The cluster store holds the desired state of all applications and cluster components, and it's the only stateful part of the control plane.
+- It's based on the etcd distributed database, and most kubernetes clusters run an etcd replica on every control plane node for HA. However, large clusters that experience a high rate of change may run a separate etcd cluster for better performance.
+- Note that highly available cluster store is not a substitute for backup and recovery. you still need adequate ways to recover the cluster store when things go wrong.
+- Regarding availability, etcd prefers an odd number of replicas to help avoid `split brain conditions`. This is where replicas experience communication issues and cannot be sure if they have quorum (majority)
+  ![image](https://github.com/user-attachments/assets/3fe5ed5d-f013-4928-945a-011dae497228)
+HA and split-brain condition
+
+What happens if split brain occurs ?
+ > If split-brain occurs, etcd goes into read-only mode preventing updateds to the cluster. user applications will continue working, but kubernetes won't be able to scale or update them.
+
+- As with all distributed databases, consistency of writes is vital. For example, multiple writes from different sources to the same can cause corruption. etcd uses the `RAFT consensus algorithm` to prevent this from happening.
+
+**Controllers and the controller manager**
+- kubernetes uses `controllers` to implement a lot of the cluster intelligence. Each controller runs as a process on the control plane, and some of the more common ones include :
+```
+- The deployment controller
+- The statefulset controller
+- The Replicaset controller
+```
+- Controllers ensure the cluster runs what you asked it to run. For ex: if you ask for 3 replicas of an app, a controller will ensure you have three healthy replicas and take appropriate actions if you don't.
+- Kubernetes also runs a `controller manager` that is responsible for spawning and managing the individual controllers.
+  
+![image](https://github.com/user-attachments/assets/f50b795b-d91e-4c4d-89bf-4ff9e9f6dcf5)
+controller manager and controllers
+
+**The Scheduler**
+- The scheduler watches the API server for new work tasks and assign them to healthy worker nodes
+
+It implements the following process:
+
+1. Watch the API Server for new tasks
+2. Identify capable nodes
+```
+- Identify capable nodes involves predicate checks, filtering, and a ranking algorithm. It checks for taints, affinity and anti-affinity rules, network port availability and available cpu and memory. It ignores nodes in-capable of running the tasks and ranks the remaining ones according to factors such as whether it already has the required image, the amount of available CPU and memory,  and number of tasks it's currently running. Each is worth points, and the nodes with the most points are selected to run the tasks.
+- The scheduler marks tasks as pending if it can't find a sutitable node
+```   
+3. Assign tasks to nodes
+
+- if the cluster is configured for `node autoscaling` the pending task kicks off a cluster autoscaling event that adds a new node to the cluster and the scheduler assigns the task to the new node.
+
+**The cloud controller manager**
+- if your cluster is on a public cloud, such as AWS, Azure, GCP, or Civo Cloud, it will run a cloud controller manager that integrates the cluster with cloud services, such as instances, load balancers, and storage. 
+
+![image](https://github.com/user-attachments/assets/ab2d3d30-7866-4d5f-930c-42cee5962bcf)
+
+
+**Worker nodes :**
+- worker nodes run your business applications.
+  
+![image](https://github.com/user-attachments/assets/ca267be6-590b-468a-b8f4-2466529e4a8e)
+
+**kubelet**
+- The kubelet is the main kubernetes agent and handles all communication with the cluster.
+It performs the following key tasks :
+- watches the API server for new tasks
+- Instructs the appropriate runtime to execute tasks
+- Reports task status to the API Server
+
+If a task won't run, the kubelet reports the problem to the API server and lets the control plane decide what actions to take.
+
+**Runtime**
+- Every worker node has one or more runtimes for executing tasks
+- Most new kubernetes clusters pre-install the `container-d` runtime and use it to execute tasks. These tasks include :
+```
+- pulling container images
+- Managing lifecycle operations such as starting and stopping containers
+```
+
+📝 older clusters shipped with the docker runtime, but this is no longer supported. Redhat openshift clusters use the CRI-O runtime. Lots of others exist, and each has its pros and cons.
+
+**kubeproxy**
+- Every worker node runs a `kube-proxy` service that implements cluster networking and load balances traffic to tasks running on the node.
 
 **packaging apps for kubernetes**
+- kubernetes runs containers, VMs, Wasm apps and more. However, all of them need wrapping in pods before they'll run on kubernetes.
+  
+let's have a courier analogy
+```
+- Couriers allow you to ship books, clothes, food, electrical items, and more, so long as you use their approved packaging and labels. Once you've packaged and labeled your goods, you hand them to the courier for delivery. The courier then handles the complex logistics of which planes and trucks to use, secure hand-off to local delivery hubs, and eventual delivery to customers. They also provide services for tracking packages, changing delivery details, and attesting successful delivery. All you have to do is package and label the goods. 
+```
+Running applications on Kubernetes is similar. 
+```
+Kubernetes can run containers, VMs, Wasm apps, and more, as long as you wrap them in Pods. Once wrapped in a Pod, you give the Pod to Kubernetes, and Kubernetes runs it. This includes the complex logistics of choosing appropriate nodes, joining networks, attaching volumes, and more. Kubernetes even lets you query apps and make changes.
+```
+
+- you write an app in your favorite language, containerize it, push it to a registry, and wrap it in a pod. At this point, you can give the pod to kubernetes, and kubernetes will run it. However, you'll almost always deploy and manage pods via higher-level controllers. For example, you can wrap pods inside of `Deployments` for scaling, self-healing and rollouts.
+
+- Most couriers offer additional services such as insurance for the goods you're shipping, refrigerated delivery, signature and photograhic proof of delivery, express delivery services and more.
+- k8s is simmilar, It implements controllers that add value, such as ensuring the health of apps, automatically scaling when demand increases, and more
+
+![image](https://github.com/user-attachments/assets/88a0a491-3d0e-4450-93aa-13350f1a602f)
+
+------ object nesting -----
+
+- The important thing to understand is that each layer of wrapping adds something :
+   - The container wraps the app and provides dependencies
+   - The pod wraps the container so it can run on kubernetes
+   - The Deployment wraps the pod and adds self-healing, scaling and more..
+
+You post the Deployment (YAML file) to the API Server as the `desired state` of the application, and kubernetes implements it.
+
 
 **The declarative model and desired state**
+- The `declarative model` and `desired state` are at the core of how kubernetes operates. They work on three basic principles: Desired state, Observed state, Reconcilliation
+
+Desired state -> What you want
+Observed state -> what you have
+reconciliation -> process of keeping observed state in sync with desired state
+
+- In kubernetes, the `declarative model` works like this:
+```
+1. you describe the desired state of an application in a YAML manifest file
+2. you post the YAML file to the API Server
+3. Kubernetes records this in the cluster store as a record of intent
+4. A controller notices the observed state of the cluster doesn't match the new desired state
+5. The controller makes the necessary changes to reconcile the differences
+6. The controller keeps running in the background, ensuring observed state always matches desired state.
+```
+📝 - The `imperative model` requires complex scripts of platform-specific commands to achieve an end-state
+- The `declarative model` is a simple platform-agnostic way of describing an end state
+
+- kubernetes supports both but prefers the `declarative model`. This is because the declarative model integrates with versoin control systems and enables self-healing, autoscaling, and rolling updates.
 
 **Pods**
+- The atomic unit of scheduling in VMware is the virtual Machine (VM). In kubernetes, it's the `pod`
+- The simplest configurations run a single container per pod, which is why we sometimes use the terms pod and container interchangeably. However, there are powerful use cases for multi-container pods, including :
+```
+    service meshes
+    helper services that initialize environments
+    Apps with tightly coupled helper functions such as log scrappers
+```
+![image](https://github.com/user-attachments/assets/63e7f4d7-5f2d-412b-8036-612878d12c8c)
+Multi-container service mesh pod
+
+- Multi-container pods also help us implement the single responsibility principle where every container performs a single task.
+
 
 **Deployments**
 

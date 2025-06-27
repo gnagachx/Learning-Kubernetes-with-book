@@ -1,4 +1,4 @@
-![image](https://github.com/user-attachments/assets/88a0a491-3d0e-4450-93aa-13350f1a602f)![image](https://github.com/user-attachments/assets/ab2d3d30-7866-4d5f-930c-42cee5962bcf)# 1. Kubernetes Primer
+# 1. Kubernetes Primer
 # 2. kubernetes principles of operation
 # 3. Getting kubernetes
 # 4. Working with pods
@@ -292,6 +292,9 @@ Multi-container service mesh pod
 
 - Multi-container pods also help us implement the single responsibility principle where every container performs a single task.
 
+**Pod anatomy :**
+- Each pod is a shared execution environment for one or more containers. The execution environment includes a network stack, volumes, shared memory and more.
+- 
 
 **Deployments**
 
